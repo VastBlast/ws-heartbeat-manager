@@ -1,7 +1,7 @@
 {
   "name": "ws-heartbeat-manager",
   "version": "0.1.0",
-  "description": "",
+  "description": "Lightweight WebSocket heartbeat manager for ws servers.",
   "scripts": {
     "build": "tsdown",
     "build:watch": "tsdown --watch",
@@ -10,30 +10,24 @@
     "check:types": "tsgo --noEmit",
     "check": "npm run lint && npm run check:types",
     "test": "vitest",
-    "prepublishOnly": "npm run check && npm run build"
+    "prepublishOnly": "npm test -- --run && npm run check && npm run build"
   },
-  "keywords": [],
+  "keywords": [
+    "websocket",
+    "ws",
+    "heartbeat",
+    "ping",
+    "pong"
+  ],
   "author": "VastBlast",
-  "license": "ISC",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      },
-      "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
-      }
-    }
-  },
+  "license": "MIT",
   "files": [
     "dist/"
   ],
+  "sideEffects": false,
+  "peerDependencies": {
+    "ws": "^8.0.0"
+  },
   "devDependencies": {
     "@types/node": "^24.10.3",
     "@types/ws": "^8.18.1",
@@ -44,5 +38,15 @@
     "typescript": "^5.8.3",
     "vitest": "^4.0.16"
   },
-  "type": "module"
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  }
 }
