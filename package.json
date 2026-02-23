@@ -1,0 +1,48 @@
+{
+  "name": "ws-heartbeat-manager",
+  "version": "0.1.0",
+  "description": "",
+  "scripts": {
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
+    "lint": "oxlint --type-aware",
+    "lint:fix": "oxlint --fix --type-aware",
+    "check:types": "tsgo --noEmit",
+    "check": "npm run lint && npm run check:types",
+    "test": "vitest",
+    "prepublishOnly": "npm run check && npm run build"
+  },
+  "keywords": [],
+  "author": "VastBlast",
+  "license": "ISC",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist/"
+  ],
+  "devDependencies": {
+    "@types/node": "^24.10.3",
+    "@types/ws": "^8.18.1",
+    "@typescript/native-preview": "^7.0.0-dev.20251223.1",
+    "oxlint": "^1.35.0",
+    "oxlint-tsgolint": "^0.14.2",
+    "tsdown": "^0.20.3",
+    "typescript": "^5.8.3",
+    "vitest": "^4.0.16"
+  },
+  "type": "module"
+}
