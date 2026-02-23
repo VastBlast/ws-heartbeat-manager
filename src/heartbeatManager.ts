@@ -37,11 +37,26 @@ export class HeartbeatManager {
         this.intervalMs = opts.intervalMs ?? 30_000;
         this.timeoutMs = opts.timeoutMs ?? this.intervalMs * 2;
 
-        if (this.intervalMs <= 0) throw new RangeError('intervalMs must be > 0');
-        if (this.timeoutMs < this.intervalMs) throw new RangeError('timeoutMs must be >= intervalMs');
+        if (!Number.isFinite(this.intervalMs) || this.intervalMs <= 0) {
+            throw new RangeError('intervalMs must be a finite number > 0');
+        }
+        if (!Number.isFinite(this.timeoutMs) || this.timeoutMs < this.intervalMs) {
+            throw new RangeError('timeoutMs must be a finite number >= intervalMs');
+        }
 
         const desiredTickMs = opts.tickMs ?? Math.min(1000, this.intervalMs);
         const maxBuckets = opts.maxBuckets ?? 60;
+        this.startJitterMs = opts.startJitterMs ?? this.intervalMs;
+
+        if (!Number.isFinite(desiredTickMs) || desiredTickMs <= 0) {
+            throw new RangeError('tickMs must be a finite number > 0');
+        }
+        if (!Number.isInteger(maxBuckets) || maxBuckets < 1) {
+            throw new RangeError('maxBuckets must be an integer >= 1');
+        }
+        if (!Number.isFinite(this.startJitterMs) || this.startJitterMs < 0) {
+            throw new RangeError('startJitterMs must be a finite number >= 0');
+        }
 
         const bucketCount = Math.min(
             maxBuckets,
@@ -50,7 +65,6 @@ export class HeartbeatManager {
 
         // Rotate through all buckets roughly once per intervalMs.
         this.tickMs = Math.max(10, Math.round(this.intervalMs / bucketCount));
-        this.startJitterMs = opts.startJitterMs ?? this.intervalMs;
 
         this.buckets = Array.from({ length: bucketCount }, () => new Set<WebSocket>());
     }
@@ -74,8 +88,7 @@ export class HeartbeatManager {
                 this.removeClient(ws);
             },
             onError: () => {
-                try { ws.terminate(); } catch { }
-                this.removeClient(ws);
+                this.removeClient(ws, true);
             },
         };
 
@@ -89,7 +102,9 @@ export class HeartbeatManager {
         this.startTimersIfNeeded();
     }
 
-    removeClient(ws: WebSocket): void {
+    removeClient(ws: WebSocket, terminate = false): void {
+        if (terminate) try { ws.terminate(); } catch { }
+
         const state = this.clients.get(ws);
         if (!state) return;
 
@@ -106,8 +121,7 @@ export class HeartbeatManager {
     shutdown(): void {
         this.stopTimers();
         for (const ws of Array.from(this.clients.keys())) {
-            try { ws.terminate(); } catch { }
-            this.removeClient(ws);
+            this.removeClient(ws, true);
         }
     }
 
@@ -170,16 +184,14 @@ export class HeartbeatManager {
             }
 
             if (now - state.lastPongAt > this.timeoutMs) {
-                try { ws.terminate(); } catch { }
-                this.removeClient(ws);
+                this.removeClient(ws, true);
                 continue;
             }
 
             try {
                 ws.ping();
             } catch {
-                try { ws.terminate(); } catch { }
-                this.removeClient(ws);
+                this.removeClient(ws, true);
             }
         }
 

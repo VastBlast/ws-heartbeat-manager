@@ -2,8 +2,9 @@ import { defineConfig } from 'tsdown'
 
 export default defineConfig({
     entry: ['./src/index.ts'],
-    platform: 'neutral',
+    platform: 'node',
     clean: true,
     dts: true,
+    exports: true,
     format: ['cjs', 'esm'],
 });
