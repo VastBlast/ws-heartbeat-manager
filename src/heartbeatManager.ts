@@ -2,12 +2,40 @@ import { performance } from 'node:perf_hooks';
 import { setInterval, clearInterval, setTimeout, clearTimeout } from 'node:timers';
 import type { WebSocket } from 'ws';
 
+/**
+ * Configuration for {@link HeartbeatManager}.
+ */
 export type HeartbeatManagerOptions = Readonly<{
-    intervalMs?: number;     // default 30s
-    timeoutMs?: number;      // default 2 * intervalMs
-    tickMs?: number;         // default min(1000, intervalMs)
-    startJitterMs?: number;  // default intervalMs
-    maxBuckets?: number;     // default 60
+    /**
+     * Length of one heartbeat cycle in milliseconds.
+     *
+     * @default 30000
+     */
+    intervalMs?: number;
+    /**
+     * How long to wait before considering a client timed out.
+     *
+     * @default intervalMs * 2
+     */
+    timeoutMs?: number;
+    /**
+     * Timer tick interval used to rotate buckets.
+     *
+     * @default Math.min(1000, intervalMs)
+     */
+    tickMs?: number;
+    /**
+     * Random delay before first tick to avoid synchronized storms.
+     *
+     * @default intervalMs
+     */
+    startJitterMs?: number;
+    /**
+     * Maximum number of buckets used for scheduling.
+     *
+     * @default 60
+     */
+    maxBuckets?: number;
 }>;
 
 type ClientState = {
@@ -19,6 +47,11 @@ type ClientState = {
 };
 
 const WS_OPEN = 1 as const; // avoids value import; ws readyState OPEN is 1
+
+/**
+ * HeartbeatManager schedules periodic `ping()` calls and removes clients that
+ * stop responding to `pong()`.
+ */
 
 export class HeartbeatManager {
     private readonly clients = new Map<WebSocket, ClientState>();
@@ -33,6 +66,9 @@ export class HeartbeatManager {
     private readonly tickMs: number;
     private readonly startJitterMs: number;
 
+    /**
+     * @param opts - Optional tuning values for heartbeat timing.
+     */
     constructor(opts: HeartbeatManagerOptions = {}) {
         this.intervalMs = opts.intervalMs ?? 30_000;
         this.timeoutMs = opts.timeoutMs ?? this.intervalMs * 2;
@@ -69,10 +105,16 @@ export class HeartbeatManager {
         this.buckets = Array.from({ length: bucketCount }, () => new Set<WebSocket>());
     }
 
+    /**
+     * Number of currently tracked websocket clients.
+     */
     get clientCount(): number {
         return this.clients.size;
     }
 
+    /**
+     * Register a socket for heartbeat checks.
+     */
     addClient(ws: WebSocket): void {
         if (this.clients.has(ws)) return; // prevents duplicate listeners
 
@@ -102,6 +144,12 @@ export class HeartbeatManager {
         this.startTimersIfNeeded();
     }
 
+    /**
+     * Unregister a socket from heartbeat checks.
+     *
+     * @param ws - Socket to stop tracking.
+     * @param terminate - If true, terminate the socket after removing listeners.
+     */
     removeClient(ws: WebSocket, terminate = false): void {
         if (terminate) try { ws.terminate(); } catch { }
 
@@ -118,6 +166,9 @@ export class HeartbeatManager {
         if (this.clients.size === 0) this.stopTimers();
     }
 
+    /**
+     * Stops timers and removes all tracked clients.
+     */
     shutdown(): void {
         this.stopTimers();
         for (const ws of Array.from(this.clients.keys())) {
